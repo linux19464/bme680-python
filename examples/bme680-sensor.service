@@ -1,0 +1,9 @@
+[Unit]
+Description=A service that will keep my python app running in the background
+After=multi-user.target
+[Service]
+Type=simple
+Restart=always
+ExecStart=/home/traleigh/.virtualenvs/pimoroni/bin/python3 /home/traleigh/GitRepo/examples/data_exporter.py
+[Install]
+WantedBy=multi-user.target
