@@ -1,6 +1,7 @@
 import bme680
 import time
 import datetime
+import pytemperature
 #from datetime import date, timedelta
 import logging
 from flask import Flask, Response
@@ -106,12 +107,14 @@ def get_bme680_readings():
         # Calculate air_quality_score.
         air_quality_score = hum_score + gas_score
         logging.debug('air_quality_score: {0}'.format(air_quality_score))
-        
-        logging.info("Gas baseline: {0} Ohms, Pressure: {1:.2f} ,Temperature: {2:.2f} ,Humidity baseline: {3:.2f} %RH IAQ: {4:.2f}".format(
-            gas,sensor.data.pressure,sensor.data.temperature,hum,air_quality_score))
+        tempfahrenheit = pytemperature.c2f(sensor.data.temperature)        
+        logging.info("Gas baseline: {0} Ohms, Pressure: {1:.2f} ,Temperature-C: {2:.2f} ,Temperature-F: {3:.2f} ,Humidity baseline: {4:.2f} %RH IAQ: {5:.2f}".format(
+            gas_score,sensor.data.pressure,sensor.data.temperature,tempfahrenheit,hum_score,air_quality_score))
 
         response = {"temperature": sensor.data.temperature,
+                    "tempfahrenheit": tempfahrenheit,
                     "humidity": hum,
+                    "humidity score": hum_score,
                     "pressure": sensor.data.pressure,
                     "iaq": air_quality_score}
         return response
@@ -128,9 +131,20 @@ current_humidity = Gauge(
         ['room']
 )
 
+current_humidity_score = Gauge(
+        'current_humidity_score',
+        'the current humidity score percentage, this is a gauge as the value can increase or decrease',
+        ['room']
+)
 current_temperature = Gauge(
         'current_temperature',
         'the current temperature in celsius, this is a gauge as the value can increase or decrease',
+        ['room']
+)
+
+current_tempfahrenheit = Gauge(
+        'current_tempfahrenheit',
+        'the current temperature in fahrenheit, this is a gauge as the value can increase or decrease',
         ['room']
 )
 
@@ -150,7 +164,9 @@ current_iaq = Gauge(
 def metrics():
     metrics = get_bme680_readings()
     current_humidity.labels('basement').set(metrics['humidity'])
+    current_humidity_score.labels('basement').set(metrics['humidity'])
     current_temperature.labels('basement').set(metrics['temperature'])
+    current_tempfahrenheit.labels('basement').set(metrics['tempfahrenheit'])
     current_pressure.labels('basement').set(metrics['pressure'])
     current_iaq.labels('basement').set(metrics['iaq'])
     return Response(generate_latest(), mimetype=content_type)
